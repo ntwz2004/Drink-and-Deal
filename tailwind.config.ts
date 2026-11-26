@@ -14,7 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        kanit: ['Kanit', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', '"IBM Plex Sans Thai"', "system-ui", "sans-serif"],
+        display: ['"Plus Jakarta Sans"', '"IBM Plex Sans Thai"', "system-ui", "sans-serif"],
+        kanit: ['"IBM Plex Sans Thai"', '"Plus Jakarta Sans"', "system-ui", "sans-serif"],
       },
       colors: {
         "card-red": "hsl(var(--card-red))",

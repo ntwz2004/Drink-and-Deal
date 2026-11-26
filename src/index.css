@@ -2,53 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
-
 @layer base {
   :root {
-    /* Warm felt — minimal card-table palette */
-    --background: 158 29% 10%;
-    --foreground: 40 15% 90%;
+    /* Modern Night Lounge — crisp dark slate with warm amber & emerald accents */
+    --background: 224 32% 7%;
+    --foreground: 210 20% 96%;
 
-    --card: 157 25% 15%;
-    --card-foreground: 40 15% 90%;
+    --card: 223 26% 11%;
+    --card-foreground: 210 20% 96%;
 
-    --popover: 157 25% 13%;
-    --popover-foreground: 40 15% 90%;
+    --popover: 223 28% 10%;
+    --popover-foreground: 210 20% 96%;
 
-    --primary: 40 15% 90%;
-    --primary-foreground: 158 29% 10%;
+    --primary: 38 92% 58%;
+    --primary-foreground: 224 32% 8%;
 
-    --secondary: 157 20% 20%;
-    --secondary-foreground: 40 15% 90%;
+    --secondary: 222 22% 16%;
+    --secondary-foreground: 210 20% 94%;
 
-    --muted: 157 20% 19%;
-    --muted-foreground: 150 8% 60%;
+    --muted: 222 20% 15%;
+    --muted-foreground: 215 16% 64%;
 
-    --accent: 6 63% 46%;
-    --accent-foreground: 40 15% 96%;
+    --accent: 350 78% 58%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 6 63% 46%;
-    --destructive-foreground: 40 15% 96%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 157 18% 22%;
-    --input: 157 18% 22%;
-    --ring: 150 10% 45%;
+    --border: 220 18% 19%;
+    --input: 220 18% 20%;
+    --ring: 38 92% 58%;
 
-    --radius: 0.75rem;
+    --radius: 0.875rem;
 
-    --card-red: 6 63% 46%;
-    --card-black: 0 0% 10%;
+    --card-red: 355 76% 48%;
+    --card-black: 222 30% 12%;
     --card-face: 0 0% 100%;
 
-    --sidebar-background: 157 25% 12%;
-    --sidebar-foreground: 40 15% 90%;
-    --sidebar-primary: 40 15% 90%;
-    --sidebar-primary-foreground: 158 29% 10%;
-    --sidebar-accent: 157 20% 19%;
-    --sidebar-accent-foreground: 40 15% 90%;
-    --sidebar-border: 157 18% 22%;
-    --sidebar-ring: 150 10% 45%;
+    --sidebar-background: 223 28% 9%;
+    --sidebar-foreground: 210 20% 96%;
+    --sidebar-primary: 38 92% 58%;
+    --sidebar-primary-foreground: 224 32% 8%;
+    --sidebar-accent: 222 20% 15%;
+    --sidebar-accent-foreground: 210 20% 96%;
+    --sidebar-border: 220 18% 19%;
+    --sidebar-ring: 38 92% 58%;
   }
 }
 
@@ -57,48 +55,100 @@
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
-    @apply bg-background text-foreground font-kanit;
+    @apply bg-background text-foreground font-sans selection:bg-primary/25 selection:text-foreground;
     background-image:
-      radial-gradient(ellipse at 50% 0%, hsl(157 25% 18% / 0.7) 0%, transparent 60%);
+      radial-gradient(ellipse 80% 50% at 50% -10%, hsl(160 55% 24% / 0.22) 0%, transparent 65%),
+      radial-gradient(ellipse 60% 45% at 88% 18%, hsl(38 90% 50% / 0.1) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 45% at 12% 85%, hsl(350 75% 50% / 0.08) 0%, transparent 60%);
+    background-attachment: fixed;
     min-height: 100vh;
   }
 }
 
+@layer utilities {
+  .glass-surface {
+    @apply bg-card/70 backdrop-blur-xl border border-white/[0.08] shadow-[0_12px_40px_-16px_rgba(0,0,0,0.65)];
+  }
+
+  .glass-subtle {
+    @apply bg-white/[0.03] backdrop-blur-md border border-white/[0.07];
+  }
+}
+
 @keyframes card-3d-flip {
-  0% { transform: rotateY(180deg) scale(0.94); }
-  40% { transform: rotateY(90deg) scale(1.03); }
-  70% { transform: rotateY(18deg) scale(1.02); }
-  88% { transform: rotateY(-4deg) scale(1); }
-  100% { transform: rotateY(0deg) scale(1); }
+  0% {
+    transform: rotateY(180deg) scale(0.94);
+  }
+  40% {
+    transform: rotateY(90deg) scale(1.03);
+  }
+  70% {
+    transform: rotateY(16deg) scale(1.02);
+  }
+  88% {
+    transform: rotateY(-3deg) scale(1);
+  }
+  100% {
+    transform: rotateY(0deg) scale(1);
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
 
 @keyframes scale-in {
-  0% { transform: scale(0.96); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes fade-up {
-  0% { transform: translateY(6px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
+  0% {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .animate-card-3d-flip {
-  animation: card-3d-flip 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
+  animation: card-3d-flip 0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
 }
 
 @keyframes card-face-reveal {
-  0%, 44% { opacity: 0; }
-  46%, 100% { opacity: 1; }
+  0%,
+  44% {
+    opacity: 0;
+  }
+  46%,
+  100% {
+    opacity: 1;
+  }
 }
 
 .animate-card-face-reveal {
-  animation: card-face-reveal 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
+  animation: card-face-reveal 0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
 }
 
 .animate-float {
@@ -106,9 +156,9 @@
 }
 
 .animate-scale-in {
-  animation: scale-in 0.3s ease-out;
+  animation: scale-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .animate-fade-up {
-  animation: fade-up 0.35s ease-out;
+  animation: fade-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }

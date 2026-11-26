@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, RotateCcw, Plus, X } from 'lucide-react';
+import { RotateCcw, Plus, X, Sparkles, Trophy, Users, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import AppHeader from '@/components/AppHeader';
 import { useGameSession } from '@/hooks/useGameSession';
-
 
 interface WheelState {
   names: string[];
@@ -14,13 +13,15 @@ interface WheelState {
 }
 
 const SEGMENT_COLORS = [
-  'hsl(6 63% 46%)',
-  'hsl(157 25% 24%)',
-  'hsl(40 15% 82%)',
-  'hsl(157 20% 34%)',
-  'hsl(28 55% 48%)',
-  'hsl(200 25% 32%)',
+  { fill: 'hsl(350 74% 52%)', text: '#ffffff' },
+  { fill: 'hsl(162 62% 38%)', text: '#ffffff' },
+  { fill: 'hsl(38 92% 54%)', text: '#111827' },
+  { fill: 'hsl(232 68% 58%)', text: '#ffffff' },
+  { fill: 'hsl(192 72% 42%)', text: '#ffffff' },
+  { fill: 'hsl(276 62% 54%)', text: '#ffffff' },
 ];
+
+const MAX_NAMES = 12;
 
 const polar = (cx: number, cy: number, r: number, deg: number) => {
   const rad = ((deg - 90) * Math.PI) / 180;
@@ -33,9 +34,9 @@ const WheelGame = () => {
   const [angle, setAngle] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [winnerIndex, setWinnerIndex] = useState<number | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
 
   const { loaded, initial, save, clear } = useGameSession<WheelState>('wheel_state');
 
@@ -52,33 +53,52 @@ const WheelGame = () => {
     save({ names, angle, result });
   }, [loaded, spinning, names, angle, result, save]);
 
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
 
   const addName = () => {
     const v = draft.trim();
-    if (!v || names.length >= 12) return;
+    if (!v || names.length >= MAX_NAMES) return;
     setNames((n) => [...n, v]);
     setDraft('');
   };
 
-  const removeName = (i: number) => setNames((n) => n.filter((_, idx) => idx !== i));
+  const removeName = (i: number) => {
+    if (spinning) return;
+    setNames((n) => n.filter((_, idx) => idx !== i));
+  };
 
   const spin = useCallback(() => {
     if (spinning || names.length < 2) return;
     setSpinning(true);
     setResult(null);
+    setPopupOpen(false);
+
     const seg = 360 / names.length;
     const winner = Math.floor(Math.random() * names.length);
-    // center of winning segment must land under the top pointer
     const target = 360 * (Math.floor(Math.random() * 3) + 5) - (winner * seg + seg / 2);
-    const next = angle + ((target - (angle % 360)) + 360) % 360 + 360 * 5;
+    const next = angle + (((target - (angle % 360)) + 360) % 360) + 360 * 5;
     setAngle(next);
+
     timer.current = setTimeout(() => {
       setResult(names[winner]);
+      setWinnerIndex(winner);
       setSpinning(false);
       setPopupOpen(true);
     }, 4200);
   }, [spinning, names, angle]);
+
+  const removeWinnerFromWheel = () => {
+    if (winnerIndex === null) return;
+    setNames((prev) => prev.filter((_, idx) => idx !== winnerIndex));
+    setWinnerIndex(null);
+    setResult(null);
+    setPopupOpen(false);
+  };
 
   const reset = () => {
     if (timer.current) clearTimeout(timer.current);
@@ -86,179 +106,304 @@ const WheelGame = () => {
     setDraft('');
     setAngle(0);
     setResult(null);
+    setWinnerIndex(null);
     setPopupOpen(false);
     setSpinning(false);
     clear();
   };
 
-
   const seg = names.length ? 360 / names.length : 360;
   const chanceValue = names.length ? 100 / names.length : 0;
   const chance = Number.isInteger(chanceValue) ? String(chanceValue) : chanceValue.toFixed(1);
 
-
-
   return (
-    <div className="min-h-screen flex flex-col items-center px-4 py-6 sm:py-10">
-      <Link to="/" className="self-start mb-6">
-        <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-4 h-4" />
-          กลับ
-        </Button>
-      </Link>
+    <div className="min-h-screen flex flex-col">
+      <AppHeader />
 
-      <p className="text-muted-foreground text-xs tracking-[0.3em] uppercase mb-2">Wheel</p>
-      <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1 text-center">วงล้อสุ่มชื่อ</h1>
-      <p className="text-muted-foreground text-xs mb-8">เพิ่มชื่อผู้เล่น แล้วหมุนวงล้อดูว่าใครโดน</p>
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10">
+        {/* Heading */}
+        <div className="mb-8 flex flex-col items-center text-center">
+          <span className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-rose-400/25 bg-rose-500/10 px-3 py-1 text-[11px] font-medium text-rose-300">
+            <Sparkles className="h-3 w-3" />
+            <span>สุ่มรายชื่อแบบยุติธรรม</span>
+          </span>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            วงล้อสุ่มชื่อ
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            เพิ่มรายชื่อผู้เล่นตั้งแต่ 2–{MAX_NAMES} คน แล้วหมุนวงล้อเพื่อเลือกผู้โชคดีในรอบนี้
+          </p>
+        </div>
 
-      {/* Add names */}
-      <div className="w-full max-w-sm mb-4 flex gap-2">
-        <Input
-          placeholder="ใส่ชื่อผู้เล่น"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && addName()}
-          className="bg-card/50 border-border focus:border-foreground/30 text-sm h-10 rounded-lg"
-        />
-        <Button onClick={addName} size="icon" variant="outline" className="h-10 w-10 shrink-0 border-border">
-          <Plus className="w-4 h-4" />
-        </Button>
-      </div>
+        {/* Main 2-column layout */}
+        <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
+          {/* Wheel Stage */}
+          <section className="glass-surface relative flex flex-col items-center rounded-2xl p-6 sm:p-8 lg:col-span-7">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 left-1/2 -z-10 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-500/12 blur-3xl"
+            />
 
-      {names.length > 0 && (
-        <div className="w-full max-w-sm mb-8 flex flex-wrap gap-2">
-          {names.map((n, i) => (
-            <span
-              key={`${n}-${i}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/50 pl-3 pr-2 py-1 text-xs text-foreground"
+            {/* Wheel Interactive Area */}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={spin}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && spin()}
+              aria-label="หมุนวงล้อสุ่มชื่อ"
+              className={`relative aspect-square w-[min(86vw,350px)] select-none outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full ${
+                spinning || names.length < 2
+                  ? 'cursor-default'
+                  : 'cursor-pointer transition-transform active:scale-[0.985]'
+              }`}
             >
-              {n}
-              <span className="text-[10px] text-muted-foreground tabular-nums">{chance}%</span>
-              <button onClick={() => removeName(i)} className="text-muted-foreground hover:text-accent">
-                <X className="w-3 h-3" />
+              {/* Top Pointer */}
+              <div className="absolute left-1/2 -top-2 z-20 -translate-x-1/2 drop-shadow-[0_4px_10px_rgba(0,0,0,0.65)]">
+                <div className="h-0 w-0 border-l-[12px] border-r-[12px] border-t-[22px] border-l-transparent border-r-transparent border-t-primary" />
+              </div>
+
+              {/* Outer ring bezel */}
+              <div className="h-full w-full rounded-full bg-gradient-to-b from-white/15 to-white/[0.03] p-2 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.75)]">
+                <svg
+                  viewBox="0 0 200 200"
+                  className="h-full w-full rounded-full"
+                  style={{
+                    transform: `rotate(${angle}deg)`,
+                    transition: spinning ? 'transform 4.2s cubic-bezier(0.12, 0.72, 0.14, 1)' : 'none',
+                  }}
+                >
+                  {names.length < 2 ? (
+                    <>
+                      <circle cx="100" cy="100" r="98" fill="hsl(223 26% 13%)" stroke="hsl(220 18% 24%)" strokeWidth="1.5" />
+                      <circle cx="100" cy="100" r="76" fill="none" stroke="hsl(220 18% 22%)" strokeDasharray="4 4" strokeWidth="1" />
+                    </>
+                  ) : (
+                    names.map((n, i) => {
+                      const start = i * seg;
+                      const end = start + seg;
+                      const [x1, y1] = polar(100, 100, 98, start);
+                      const [x2, y2] = polar(100, 100, 98, end);
+                      const large = seg > 180 ? 1 : 0;
+                      const palette = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
+                      return (
+                        <g key={`${n}-${i}`}>
+                          <path
+                            d={`M100 100 L${x1} ${y1} A98 98 0 ${large} 1 ${x2} ${y2} Z`}
+                            fill={palette.fill}
+                            stroke="hsl(224 32% 9%)"
+                            strokeWidth="1.2"
+                          />
+                          <text
+                            x="100"
+                            y="44"
+                            fill={palette.text}
+                            fontSize={names.length > 8 ? '6.5' : '8'}
+                            fontWeight="600"
+                            dominantBaseline="middle"
+                            transform={`rotate(${start + seg / 2} 100 100)`}
+                            textAnchor="middle"
+                          >
+                            {n.length > 11 ? `${n.slice(0, 11)}…` : n}
+                          </text>
+                          <text
+                            x="100"
+                            y="55"
+                            fill={palette.text}
+                            opacity="0.75"
+                            fontSize="5"
+                            dominantBaseline="middle"
+                            transform={`rotate(${start + seg / 2} 100 100)`}
+                            textAnchor="middle"
+                          >
+                            {chance}%
+                          </text>
+                        </g>
+                      );
+                    })
+                  )}
+
+                  {/* Center Hub */}
+                  <circle cx="100" cy="100" r="18" fill="hsl(224 32% 9%)" stroke="hsl(38 92% 58%)" strokeWidth="2" />
+                  <circle cx="100" cy="100" r="6" fill="hsl(38 92% 58%)" />
+                </svg>
+
+                {names.length < 2 && (
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
+                    <span className="rounded-full bg-background/85 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
+                      เพิ่มรายชื่ออย่างน้อย 2 คน
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <Button
+              onClick={spin}
+              disabled={spinning || names.length < 2}
+              size="lg"
+              className="mt-6 h-12 w-full max-w-xs rounded-xl text-base font-semibold shadow-lg shadow-primary/20"
+            >
+              {spinning ? 'กำลังหมุนวงล้อ...' : 'หมุนวงล้อ'}
+            </Button>
+
+            <p className="mt-2.5 text-xs text-muted-foreground">
+              {names.length < 2
+                ? 'กรุณาเพิ่มรายชื่อผู้เล่นอย่างน้อย 2 คนทางด้านขวา'
+                : 'แตะที่วงล้อหรือกดปุ่มด้านบนเพื่อเริ่มหมุน'}
+            </p>
+
+            {/* Latest Result Banner */}
+            {result && !spinning && (
+              <button
+                type="button"
+                onClick={() => setPopupOpen(true)}
+                className="mt-6 flex w-full max-w-sm items-center justify-between gap-4 rounded-xl border border-primary/30 bg-primary/10 px-5 py-3.5 text-left transition-colors hover:bg-primary/15 animate-scale-in"
+              >
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium text-primary">ผลการสุ่มรอบล่าสุด</p>
+                  <p className="truncate text-lg font-bold text-foreground">{result}</p>
+                </div>
+                <span className="shrink-0 text-xs font-medium text-primary">ดูผล</span>
               </button>
-            </span>
-          ))}
+            )}
+          </section>
+
+          {/* Players Management Panel */}
+          <section className="glass-surface rounded-2xl p-6 lg:col-span-5">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" />
+                <h2 className="text-base font-semibold text-foreground">รายชื่อบนวงล้อ</h2>
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground tabular-nums">
+                {names.length} / {MAX_NAMES} คน
+              </span>
+            </div>
+
+            {/* Add input */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="พิมพ์ชื่อผู้เล่นแล้วกด Enter"
+                value={draft}
+                disabled={names.length >= MAX_NAMES || spinning}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addName()}
+                className="h-10 rounded-xl border-white/10 bg-white/[0.04] text-sm focus-visible:ring-primary"
+              />
+              <Button
+                onClick={addName}
+                disabled={!draft.trim() || names.length >= MAX_NAMES || spinning}
+                className="h-10 shrink-0 gap-1 rounded-xl px-4 font-medium"
+              >
+                <Plus className="h-4 w-4" />
+                <span>เพิ่ม</span>
+              </Button>
+            </div>
+
+            {/* List */}
+            {names.length === 0 ? (
+              <div className="mt-6 rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-8 text-center">
+                <p className="text-sm font-medium text-foreground/90">ยังไม่มีรายชื่อผู้เล่น</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  พิมพ์ชื่อเพื่อนด้านบนเพื่อเพิ่มเข้าสู่วงล้อ
+                </p>
+              </div>
+            ) : (
+              <div className="mt-5 flex flex-wrap gap-2">
+                {names.map((n, i) => {
+                  const dotColor = SEGMENT_COLORS[i % SEGMENT_COLORS.length].fill;
+                  return (
+                    <span
+                      key={`${n}-${i}`}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1.5 pl-2.5 pr-2 text-xs font-medium text-foreground"
+                    >
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: dotColor }}
+                      />
+                      <span className="max-w-[140px] truncate">{n}</span>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {chance}%
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeName(i)}
+                        disabled={spinning}
+                        aria-label={`ลบ ${n}`}
+                        className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-white/10 hover:text-destructive disabled:opacity-40"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {names.length > 0 && (
+              <div className="mt-6 flex justify-end border-t border-white/[0.07] pt-4">
+                <Button
+                  onClick={reset}
+                  variant="outline"
+                  size="sm"
+                  disabled={spinning}
+                  className="gap-2 rounded-xl border-white/10 bg-white/[0.03] hover:bg-white/[0.08]"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>ล้างรายชื่อทั้งหมด</span>
+                </Button>
+              </div>
+            )}
+          </section>
         </div>
-      )}
 
+        {/* Result Dialog */}
+        <Dialog open={popupOpen} onOpenChange={setPopupOpen}>
+          <DialogContent className="max-w-xs rounded-2xl border-white/10 bg-popover/95 text-center backdrop-blur-xl">
+            <div className="mx-auto mb-1 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30">
+              <Trophy className="h-7 w-7" />
+            </div>
+            <DialogTitle className="text-xs font-medium tracking-wider text-muted-foreground">
+              ผู้ที่ถูกสุ่มได้ในรอบนี้
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              แสดงรายชื่อผู้เล่นที่วงล้อสุ่มเลือกได้
+            </DialogDescription>
+            <p className="mt-1 break-words text-3xl font-bold text-primary">{result}</p>
+            <p className="text-sm text-muted-foreground">ถึงตาของคุณแล้วในรอบนี้!</p>
 
-      {/* Wheel */}
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={spin}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && spin()}
-        aria-label="หมุนวงล้อ"
-        className={`relative w-[min(90vw,340px)] aspect-square mb-6 select-none outline-none ${
-          spinning || names.length < 2 ? 'cursor-default' : 'cursor-pointer active:scale-[0.98] transition-transform'
-        }`}
-      >
-        <div className="absolute left-1/2 -translate-x-1/2 -top-1 z-10">
-          <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-t-[18px] border-l-transparent border-r-transparent border-t-accent" />
-        </div>
-        <svg
-          viewBox="0 0 200 200"
-          className="w-full h-full rounded-full border border-border"
-          style={{
-            transform: `rotate(${angle}deg)`,
-            transition: spinning ? 'transform 4.2s cubic-bezier(0.12, 0.7, 0.15, 1)' : 'none',
-          }}
-        >
-          {names.length < 2 ? (
-            <circle cx="100" cy="100" r="98" fill="hsl(157 25% 15%)" />
-          ) : (
-            names.map((n, i) => {
-              const start = i * seg;
-              const end = start + seg;
-              const [x1, y1] = polar(100, 100, 98, start);
-              const [x2, y2] = polar(100, 100, 98, end);
-              const large = seg > 180 ? 1 : 0;
-              const fill = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
-              const light = i % SEGMENT_COLORS.length === 2;
-              return (
-                <g key={`${n}-${i}`}>
-                  <path
-                    d={`M100 100 L${x1} ${y1} A98 98 0 ${large} 1 ${x2} ${y2} Z`}
-                    fill={fill}
-                    stroke="hsl(158 29% 10%)"
-                    strokeWidth="0.8"
-                  />
-                  <text
-                    x="100"
-                    y="45"
-                    fill={light ? 'hsl(158 29% 10%)' : 'hsl(40 15% 94%)'}
-                    fontSize="8"
-                    fontWeight="500"
-                    dominantBaseline="middle"
-                    transform={`rotate(${start + seg / 2} 100 100)`}
-                    textAnchor="middle"
-                  >
-                    {n.length > 12 ? `${n.slice(0, 12)}…` : n}
-                  </text>
-                  <text
-                    x="100"
-                    y="55"
-                    fill={light ? 'hsl(158 29% 10% / 0.65)' : 'hsl(40 15% 94% / 0.65)'}
-                    fontSize="5"
-                    dominantBaseline="middle"
-                    transform={`rotate(${start + seg / 2} 100 100)`}
-                    textAnchor="middle"
-                  >
-                    {chance}%
-                  </text>
-                </g>
-              );
-            })
-          )}
-          <circle cx="100" cy="100" r="14" fill="hsl(157 25% 15%)" stroke="hsl(157 18% 30%)" />
-        </svg>
-      </div>
-
-      <Button
-        onClick={spin}
-        disabled={spinning || names.length < 2}
-        className="px-8"
-      >
-        {spinning ? 'กำลังหมุน...' : 'หมุนวงล้อ'}
-      </Button>
-      {names.length < 2 ? (
-        <p className="text-muted-foreground text-xs mt-3">ต้องมีอย่างน้อย 2 ชื่อ</p>
-      ) : (
-        <p className="text-muted-foreground text-xs mt-3">แตะที่วงล้อเพื่อหมุนก็ได้</p>
-      )}
-
-      {result && !spinning && (
-        <button
-          onClick={() => setPopupOpen(true)}
-          className="mt-8 text-center px-6 py-5 rounded-xl w-full max-w-sm bg-card/50 border border-border animate-scale-in"
-        >
-          <p className="text-[11px] tracking-widest uppercase text-muted-foreground mb-1">ผลลัพธ์</p>
-          <p className="text-2xl font-semibold text-accent">{result} โดน!</p>
-        </button>
-      )}
-
-      <Dialog open={popupOpen} onOpenChange={setPopupOpen}>
-        <DialogContent className="max-w-xs text-center border-border bg-card">
-          <DialogTitle className="text-[11px] tracking-widest uppercase text-muted-foreground font-normal">
-            ผลลัพธ์
-          </DialogTitle>
-          <DialogDescription className="sr-only">คนที่วงล้อสุ่มได้</DialogDescription>
-          <p className="text-4xl font-semibold text-accent break-words">{result}</p>
-          <p className="text-foreground text-sm">โดนแล้ว! 🍻</p>
-          <Button onClick={() => setPopupOpen(false)} className="mt-2">
-            ตกลง
-          </Button>
-        </DialogContent>
-      </Dialog>
-
-
-      <div className="mt-8">
-        <Button onClick={reset} variant="outline" size="sm" className="gap-2 border-border hover:bg-card">
-          <RotateCcw className="w-3.5 h-3.5" />
-          เริ่มใหม่
-        </Button>
-      </div>
+            <div className="mt-4 flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setPopupOpen(false)}
+                  className="flex-1 rounded-xl border-white/10 bg-white/[0.03]"
+                >
+                  ปิด
+                </Button>
+                <Button
+                  onClick={spin}
+                  disabled={names.length < 2}
+                  className="flex-1 rounded-xl font-semibold"
+                >
+                  หมุนอีกครั้ง
+                </Button>
+              </div>
+              {winnerIndex !== null && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={removeWinnerFromWheel}
+                  className="gap-1.5 rounded-xl text-xs text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>ลบชื่อนี้ออกจากวงล้อ</span>
+                </Button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </main>
     </div>
   );
 };

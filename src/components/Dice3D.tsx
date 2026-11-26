@@ -26,26 +26,37 @@ const FACE_ANGLES: Record<number, [number, number]> = {
   6: [0, 180],
 };
 
-const DiceFace = ({ dots, transform }: { dots: [number, number][]; transform: string }) => (
+const DiceFace = ({
+  dots,
+  transform,
+  isOne = false,
+}: {
+  dots: [number, number][];
+  transform: string;
+  isOne?: boolean;
+}) => (
   <div
-    className="absolute w-full h-full rounded-xl"
+    className="absolute h-full w-full rounded-2xl"
     style={{
       transform,
       backfaceVisibility: 'hidden',
-      background: 'linear-gradient(145deg, hsl(0 0% 98%), hsl(0 0% 90%))',
-      boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.6), inset 0 -1px 2px rgba(0,0,0,0.08)',
+      background: 'linear-gradient(145deg, hsl(40 25% 99%), hsl(220 15% 89%))',
+      border: '1px solid rgba(255, 255, 255, 0.7)',
+      boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.85), inset 0 -2px 5px rgba(15,23,42,0.14)',
     }}
   >
     {dots.map(([x, y], i) => (
       <div
         key={i}
-        className="absolute w-[16%] h-[16%] rounded-full"
+        className={`absolute rounded-full ${isOne ? 'h-[22%] w-[22%]' : 'h-[16%] w-[16%]'}`}
         style={{
           left: `${x}%`,
           top: `${y}%`,
           transform: 'translate(-50%, -50%)',
-          background: 'radial-gradient(circle at 35% 35%, hsl(0 0% 30%), hsl(0 0% 10%))',
-          boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.15), 0 1px 1px rgba(0,0,0,0.2)',
+          background: isOne
+            ? 'radial-gradient(circle at 35% 35%, hsl(355 82% 58%), hsl(355 78% 40%))'
+            : 'radial-gradient(circle at 35% 35%, hsl(222 25% 28%), hsl(224 32% 10%))',
+          boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.22), 0 1px 2px rgba(0,0,0,0.25)',
         }}
       />
     ))}
@@ -55,7 +66,6 @@ const DiceFace = ({ dots, transform }: { dots: [number, number][]; transform: st
 const Dice3D = ({ face, isRolling, onClick, size = 180 }: Props) => {
   const half = size / 2;
 
-  // Track cumulative rotation to avoid jumps
   const [rotation, setRotation] = useState(() => {
     const [x, y] = FACE_ANGLES[face] ?? [0, 0];
     return { x, y };
@@ -65,9 +75,7 @@ const Dice3D = ({ face, isRolling, onClick, size = 180 }: Props) => {
 
   useEffect(() => {
     if (isRolling && !prevRolling.current) {
-      // Start rolling: add multiple full spins + land on the target face
       const [targetX, targetY] = FACE_ANGLES[face];
-      // Add 3-5 full spins on each axis for dramatic effect
       const spinsX = (Math.floor(Math.random() * 3) + 3) * 360;
       const spinsY = (Math.floor(Math.random() * 3) + 3) * 360;
       setRotation({
@@ -75,7 +83,6 @@ const Dice3D = ({ face, isRolling, onClick, size = 180 }: Props) => {
         y: targetY + spinsY * (Math.random() > 0.5 ? 1 : -1),
       });
     }
-    // Face changed without rolling (e.g. restored saved state): snap to it
     if (!isRolling && !prevRolling.current && face !== prevFace.current) {
       const [x, y] = FACE_ANGLES[face] ?? [0, 0];
       setRotation({ x, y });
@@ -86,9 +93,11 @@ const Dice3D = ({ face, isRolling, onClick, size = 180 }: Props) => {
 
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={isRolling}
-      className="cursor-pointer outline-none border-none bg-transparent p-0"
+      aria-label="ทอยลูกเต๋า 3 มิติ"
+      className="cursor-pointer border-none bg-transparent p-0 outline-none transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97] disabled:cursor-default focus-visible:ring-2 focus-visible:ring-primary rounded-2xl"
       style={{
         perspective: `${size * 5}px`,
         width: size,
@@ -96,14 +105,14 @@ const Dice3D = ({ face, isRolling, onClick, size = 180 }: Props) => {
       }}
     >
       <div
-        className="relative w-full h-full"
+        className="relative h-full w-full"
         style={{
           transformStyle: 'preserve-3d',
           transition: 'transform 1.6s cubic-bezier(0.15, 0.8, 0.3, 1)',
           transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
         }}
       >
-        <DiceFace dots={DOT_POSITIONS[1]} transform={`translateZ(${half}px)`} />
+        <DiceFace dots={DOT_POSITIONS[1]} transform={`translateZ(${half}px)`} isOne />
         <DiceFace dots={DOT_POSITIONS[6]} transform={`rotateY(180deg) translateZ(${half}px)`} />
         <DiceFace dots={DOT_POSITIONS[5]} transform={`rotateY(90deg) translateZ(${half}px)`} />
         <DiceFace dots={DOT_POSITIONS[2]} transform={`rotateY(-90deg) translateZ(${half}px)`} />
